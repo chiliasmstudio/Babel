@@ -9,6 +9,7 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
@@ -16,12 +17,9 @@ import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
+import java.security.*;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -30,9 +28,10 @@ import java.util.List;
 
 public class test {
     public static void main(String[] args) throws Exception {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         // Generate root key pair
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(4096, new SecureRandom());
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448","BC");
+        //keyPairGenerator.initialize(4096, new SecureRandom());
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
@@ -56,7 +55,7 @@ public class test {
                 new X500Name("CN=Root"),
                 SubjectPublicKeyInfo.getInstance(rootPublicKey.getEncoded())
         );
-        ContentSigner rootContentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").build(rootPrivateKey);
+        ContentSigner rootContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder rootCertHolder = rootCertBuilder.build(rootContentSigner);
         X509Certificate rootCert = new JcaX509CertificateConverter().getCertificate(rootCertHolder);
 
@@ -68,7 +67,7 @@ public class test {
                 new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365)),
                 new X500Name("CN=Intermediate"),
                 SubjectPublicKeyInfo.getInstance(intermediatePublicKey.getEncoded()));
-        ContentSigner intermediateContentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").build(rootPrivateKey);
+        ContentSigner intermediateContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder intermediateCertHolder = intermediateCertBuilder.build(intermediateContentSigner);
         X509Certificate intermediateCert = new JcaX509CertificateConverter().getCertificate(intermediateCertHolder);
 
@@ -81,27 +80,31 @@ public class test {
                 new X500Name("CN=End Entity"),
                 SubjectPublicKeyInfo.getInstance(endEntityPublicKey.getEncoded())
         );
-        ContentSigner endEntityContentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").build(intermediatePrivateKey);
+        ContentSigner endEntityContentSigner = new JcaContentSignerBuilder("Ed448").build(intermediatePrivateKey);
         X509CertificateHolder endEntityCertHolder = endEntityCertBuilder.build(endEntityContentSigner);
         X509Certificate endEntityCert = new JcaX509CertificateConverter().getCertificate(endEntityCertHolder);
 
         // Create certificate chain
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-        List<X509Certificate> certChain = Arrays.asList(endEntityCert, intermediateCert, rootCert);
-
+        List<X509Certificate> certChain = Arrays.asList(rootCert,intermediateCert,endEntityCert);
+        JcaPEMWriter pemWriter = new JcaPEMWriter(new FileWriter("./temp/fullchain.pem"));
+        for (X509Certificate cert : certChain) {
+            pemWriter.writeObject(cert);
+        }
+        pemWriter.close();
 
         // Save root certificate as CRT
-        try (FileOutputStream fos = new FileOutputStream("root.crt")) {
+        try (FileOutputStream fos = new FileOutputStream("./temp/root.crt")) {
             fos.write(rootCert.getEncoded());
         }
 
-// Save intermediate certificate as CRT
-        try (FileOutputStream fos = new FileOutputStream("intermediate.crt")) {
+        // Save intermediate certificate as CRT
+        try (FileOutputStream fos = new FileOutputStream("./temp/intermediate.crt")) {
             fos.write(intermediateCert.getEncoded());
         }
 
-// Save end certificate as CRT
-        try (FileOutputStream fos = new FileOutputStream("end.crt")) {
+        // Save end certificate as CRT
+        try (FileOutputStream fos = new FileOutputStream("./temp/end.crt")) {
             fos.write(endEntityCert.getEncoded());
         }
     }
