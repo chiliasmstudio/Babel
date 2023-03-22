@@ -90,16 +90,6 @@ public class test {
         List<X509Certificate> certChain = Arrays.asList(endEntityCert, intermediateCert, rootCert);
 
 
-
-
-
-
-
-
-
-
-
-
         // Save root certificate as CRT
         try (FileOutputStream fos = new FileOutputStream("root.crt")) {
             fos.write(rootCert.getEncoded());
