@@ -32,7 +32,7 @@ public class test {
     public static void main(String[] args) throws Exception {
         // Generate root key pair
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048, new SecureRandom());
+        keyPairGenerator.initialize(4096, new SecureRandom());
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
@@ -52,7 +52,7 @@ public class test {
                 new X500Name("CN=Root"),
                 BigInteger.valueOf(1),
                 new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 24),
-                new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365)),
+                new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365 * 20)),
                 new X500Name("CN=Root"),
                 SubjectPublicKeyInfo.getInstance(rootPublicKey.getEncoded())
         );
