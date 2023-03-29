@@ -55,6 +55,14 @@ public class test {
                 new X500Name("CN=Root"),
                 SubjectPublicKeyInfo.getInstance(rootPublicKey.getEncoded())
         );
+
+        // Add keyCertSign extension
+        rootCertBuilder.addExtension(Extension.keyUsage,true,
+                new KeyUsage(KeyUsage.cRLSign
+                        | KeyUsage.keyCertSign
+                        | KeyUsage.dataEncipherment
+                ));
+
         ContentSigner rootContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder rootCertHolder = rootCertBuilder.build(rootContentSigner);
         X509Certificate rootCert = new JcaX509CertificateConverter().getCertificate(rootCertHolder);
