@@ -8,12 +8,8 @@ import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import java.io.FileOutputStream;
@@ -30,24 +26,23 @@ import java.util.List;
 public class test {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        // Generate root key pair
+        // Generate root key pair.
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448", "BC");
-        //keyPairGenerator.initialize(4096, new SecureRandom());
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
 
-        // Generate intermediate key pair
+        // Generate intermediate key pair.
         KeyPair intermediateKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey intermediatePublicKey = intermediateKeyPair.getPublic();
         PrivateKey intermediatePrivateKey = intermediateKeyPair.getPrivate();
 
-        // Generate end entity key pair
+        // Generate end entity key pair.
         KeyPair endEntityKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey endEntityPublicKey = endEntityKeyPair.getPublic();
         PrivateKey endEntityPrivateKey = endEntityKeyPair.getPrivate();
 
-        // Generate root certificate
+        // Generate root certificate.
         X509v3CertificateBuilder rootCertBuilder = new X509v3CertificateBuilder(
                 new X500Name("CN=Root"),
                 BigInteger.valueOf(1),
@@ -57,50 +52,43 @@ public class test {
                 SubjectPublicKeyInfo.getInstance(rootPublicKey.getEncoded())
         );
 
-        // Set key usage
+        // Key usage.
         KeyUsage keyUsage = new KeyUsage(
-                  KeyUsage.cRLSign
-                | KeyUsage.keyCertSign
-                | KeyUsage.digitalSignature
-                | KeyUsage.nonRepudiation
+                KeyUsage.cRLSign
+                        | KeyUsage.keyCertSign
+                        //| KeyUsage.dataEncipherment
+                        | KeyUsage.digitalSignature
+                        | KeyUsage.nonRepudiation
+                        //| KeyUsage.keyEncipherment
+                        //| KeyUsage.keyAgreement
+                        //| KeyUsage.encipherOnly
+                        //| KeyUsage.decipherOnly
         );
         rootCertBuilder.addExtension(X509Extension.keyUsage, true, keyUsage);
 
-        //rootCertBuilder.addExtension(Extension.extendedKeyUsage,true,new ExtendedKeyUsage(KeyPurposeId.getInstance(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1"))));
-
-        // 建立金鑰用途的 ASN1ObjectIdentifier 列表
+        // Key usage extension.
         ASN1ObjectIdentifier[] purposes = {
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1"), // 伺服器驗證ㄊ
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.2"), // 用戶端驗證
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.3"), // 程式碼簽署
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.4"), // 安全電子郵件
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.8"), // 時間戳記
-                new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.9"), // OCSP 簽署
-                new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.1"), // Microsoft 信任清單簽署
-                new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.4") // 加密檔案系統
+                // new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1"), // Server authentication
+                // new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.2"), // Client authentication
+                // new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.3"), // Code signing
+                // new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.4"), // Secure email
+                //new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.8"), // Timestamping
+                //new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.9"), // OCSP signing
+                // new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.1"), // Microsoft trust list signing
+                // new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.4") // Encrypted file system
         };
-
-        // 將金鑰用途加入到 ASN1EncodableVector 中
         ASN1EncodableVector keyPurposeVector = new ASN1EncodableVector();
         for (ASN1ObjectIdentifier purpose : purposes)
             keyPurposeVector.add(purpose);
-
-        // 建立 ExtendedKeyUsage 物件
         ExtendedKeyUsage extendedKeyUsage = ExtendedKeyUsage.getInstance(new DERSequence(keyPurposeVector));
+        rootCertBuilder.addExtension(Extension.extendedKeyUsage, false, extendedKeyUsage);
 
-        // 將 ExtendedKeyUsage 物件加入到憑證的延伸金鑰使用字段中
-        rootCertBuilder.addExtension(
-                org.bouncycastle.asn1.x509.Extension.extendedKeyUsage,
-                false,
-                extendedKeyUsage
-        );
-
-        // 設定基本限制 (Basic Constraints)
+        // Basic Constraints.
         BasicConstraints basicConstraints = new BasicConstraints(true); // Subject Type 為 CA
         byte[] basicConstraintsExtensionValue = basicConstraints.getEncoded();
         rootCertBuilder.addExtension(org.bouncycastle.asn1.x509.Extension.basicConstraints, true, basicConstraintsExtensionValue);
 
-        // 設定演算法為Ed448並生成憑證
+        // Set the algorithm to Ed448 and  generating the certificate.
         ContentSigner rootContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder rootCertHolder = rootCertBuilder.build(rootContentSigner);
         X509Certificate rootCert = new JcaX509CertificateConverter().getCertificate(rootCertHolder);
