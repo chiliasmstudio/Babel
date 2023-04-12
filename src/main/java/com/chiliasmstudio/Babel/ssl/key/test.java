@@ -3,17 +3,24 @@ package com.chiliasmstudio.Babel.ssl.key;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMWriter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemWriter;
 
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateFactory;
@@ -28,10 +35,12 @@ public class test {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         // Generate root key pair.
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448", "BC");
+
+
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
-
+        System.out.println();
         // Generate intermediate key pair.
         KeyPair intermediateKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey intermediatePublicKey = intermediateKeyPair.getPublic();
@@ -133,6 +142,17 @@ public class test {
             fos.write(rootCert.getEncoded());
         }
 
+        // Save root certificate as pem
+        try (FileOutputStream fos = new FileOutputStream("./temp/root.pem")) {
+            fos.write(convertToPem(rootCert).getBytes());
+        }
+
+        // Save root privatekey as pem
+        try (FileOutputStream fos = new FileOutputStream("./temp/rootPrivateKey.pem")) {
+            fos.write(rootPrivateKey.getEncoded());
+        }
+
+
         // Save intermediate certificate as CRT
         try (FileOutputStream fos = new FileOutputStream("./temp/intermediate.crt")) {
             fos.write(intermediateCert.getEncoded());
@@ -144,36 +164,42 @@ public class test {
         }
     }
 
-
-    public static ExtendedKeyUsage setExtendedKeyUsage() {
-        List<ASN1ObjectIdentifier> purposes = new ArrayList<>();
-
-        // 伺服器驗證 (1.3.6.1.5.5.7.3.1)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1"));
-
-        // 用戶端驗證 (1.3.6.1.5.5.7.3.2)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.2"));
-
-        // 程式碼簽署 (1.3.6.1.5.5.7.3.3)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.3"));
-
-        // 安全電子郵件 (1.3.6.1.5.5.7.3.4)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.4"));
-
-        // 時間戳記 (1.3.6.1.5.5.7.3.8)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.8"));
-
-        // OCSP 簽署 (1.3.6.1.5.5.7.3.9)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.9"));
-
-        // Microsoft 信任清單簽署 (1.3.6.1.4.1.311.10.3.1)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.1"));
-
-        // 加密檔案系統 (1.3.6.1.4.1.311.10.3.4)
-        purposes.add(new ASN1ObjectIdentifier("1.3.6.1.4.1.311.10.3.4"));
-        return null;
-        //return new ExtendedKeyUsage(purposes.toArray(new ASN1ObjectIdentifier[0]));
+    public static String convertToPem(X509Certificate cert) throws Exception {
+        StringWriter sw = new StringWriter();
+        PemWriter pw = new PemWriter(sw);
+        pw.writeObject(new PemObject("CERTIFICATE", cert.getEncoded()));
+        pw.close();
+        return sw.toString();
     }
 
+    public static String privateKeyToPEM(PrivateKey privateKey) throws IOException {
+        // 将 Bouncy Castle 提供的加密算法提供者添加到安全提供者列表
+        Security.addProvider(new BouncyCastleProvider());
+
+        // 将私钥转换为 PKCS#8 格式的 PrivateKeyInfo 对象
+        PrivateKeyInfo privateKeyInfo = PrivateKeyInfo.getInstance(privateKey.getEncoded());
+
+        // 将 PrivateKeyInfo 对象写入 PEM 格式的字符串
+        StringWriter sw = new StringWriter();
+        try (PEMWriter pemWriter = new PEMWriter(sw)) {
+            pemWriter.writeObject(privateKeyInfo);
+        }
+
+        // 获取 PEM 格式的私钥字符串
+        String pemString = sw.toString();
+
+        return pemString;
+    }
+
+    public static String convertToPEM(PrivateKey privateKey) throws Exception {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        StringWriter stringWriter = new StringWriter();
+        PEMWriter pemWriter = new PEMWriter(stringWriter);
+        PrivateKeyInfo privateKeyInfo = PrivateKeyInfo.getInstance(privateKey.getEncoded());
+        pemWriter.writeObject(privateKeyInfo);
+        pemWriter.flush();
+        pemWriter.close();
+        return stringWriter.toString();
+    }
 
 }
