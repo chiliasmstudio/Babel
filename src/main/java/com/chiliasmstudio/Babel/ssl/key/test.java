@@ -17,10 +17,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateFactory;
@@ -32,15 +29,17 @@ import java.util.List;
 
 public class test {
     public static void main(String[] args) throws Exception {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleProvider());
         // Generate root key pair.
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448", "BC");
-
-
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448");
+        Provider[] providers = Security.getProviders();
+        for (Provider provider : providers) {
+            System.out.println(provider.getName());
+        }
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
-        System.out.println();
+        System.out.println("\n\n"+keyPairGenerator.getProvider());
         // Generate intermediate key pair.
         KeyPair intermediateKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey intermediatePublicKey = intermediateKeyPair.getPublic();
@@ -147,10 +146,10 @@ public class test {
             fos.write(convertToPem(rootCert).getBytes());
         }
 
-        // Save root privatekey as pem
-        try (FileOutputStream fos = new FileOutputStream("./temp/rootPrivateKey.pem")) {
-            fos.write(rootPrivateKey.getEncoded());
-        }
+        // Save root private as pem
+        writePrivateKeyToPEM(rootPrivateKey,"./temp/rootPrivateKey.pem");
+        // Save root public as pem
+        writePublicKeyToPEM(rootPublicKey,"./temp/rootPublicKey.pem");
 
 
         // Save intermediate certificate as CRT
@@ -171,35 +170,25 @@ public class test {
         pw.close();
         return sw.toString();
     }
-
-    public static String privateKeyToPEM(PrivateKey privateKey) throws IOException {
-        // 将 Bouncy Castle 提供的加密算法提供者添加到安全提供者列表
-        Security.addProvider(new BouncyCastleProvider());
-
-        // 将私钥转换为 PKCS#8 格式的 PrivateKeyInfo 对象
-        PrivateKeyInfo privateKeyInfo = PrivateKeyInfo.getInstance(privateKey.getEncoded());
-
-        // 将 PrivateKeyInfo 对象写入 PEM 格式的字符串
-        StringWriter sw = new StringWriter();
-        try (PEMWriter pemWriter = new PEMWriter(sw)) {
-            pemWriter.writeObject(privateKeyInfo);
+    public static void writePrivateKeyToPEM(PrivateKey privateKey, String fileName) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(fileName);
+             OutputStreamWriter osw = new OutputStreamWriter(fos)) {
+            PemWriter pemWriter = new PemWriter(osw);
+            PemObject pemObject = new PemObject("PRIVATE KEY", privateKey.getEncoded());
+            pemWriter.writeObject(pemObject);
+            pemWriter.flush();
+            pemWriter.close();
         }
-
-        // 获取 PEM 格式的私钥字符串
-        String pemString = sw.toString();
-
-        return pemString;
     }
 
-    public static String convertToPEM(PrivateKey privateKey) throws Exception {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        StringWriter stringWriter = new StringWriter();
-        PEMWriter pemWriter = new PEMWriter(stringWriter);
-        PrivateKeyInfo privateKeyInfo = PrivateKeyInfo.getInstance(privateKey.getEncoded());
-        pemWriter.writeObject(privateKeyInfo);
-        pemWriter.flush();
-        pemWriter.close();
-        return stringWriter.toString();
+    public static void writePublicKeyToPEM(PublicKey publicKey, String fileName) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(fileName);
+             OutputStreamWriter osw = new OutputStreamWriter(fos)) {
+            PemWriter pemWriter = new PemWriter(osw);
+            PemObject pemObject = new PemObject("PUBLIC KEY", publicKey.getEncoded());
+            pemWriter.writeObject(pemObject);
+            pemWriter.flush();
+            pemWriter.close();
+        }
     }
-
 }
