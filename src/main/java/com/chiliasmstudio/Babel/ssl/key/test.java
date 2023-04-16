@@ -30,16 +30,14 @@ import java.util.List;
 public class test {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-        // Generate root key pair.
+
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448");
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
-            System.out.println(provider.getName());
-        }
+
+        // Generate root key pair.
         KeyPair rootKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey rootPublicKey = rootKeyPair.getPublic();
         PrivateKey rootPrivateKey = rootKeyPair.getPrivate();
-        System.out.println("\n\n"+keyPairGenerator.getProvider());
+
         // Generate intermediate key pair.
         KeyPair intermediateKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey intermediatePublicKey = intermediateKeyPair.getPublic();
