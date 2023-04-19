@@ -43,11 +43,6 @@ public class test {
         PublicKey intermediatePublicKey = intermediateKeyPair.getPublic();
         PrivateKey intermediatePrivateKey = intermediateKeyPair.getPrivate();
 
-        // Generate end entity key pair.
-        KeyPair endEntityKeyPair = keyPairGenerator.generateKeyPair();
-        PublicKey endEntityPublicKey = endEntityKeyPair.getPublic();
-        PrivateKey endEntityPrivateKey = endEntityKeyPair.getPrivate();
-
         // Generate root certificate.
         X509v3CertificateBuilder rootCertBuilder = new X509v3CertificateBuilder(
                 new X500Name("CN=Root"),
@@ -111,6 +106,11 @@ public class test {
         ContentSigner intermediateContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder intermediateCertHolder = intermediateCertBuilder.build(intermediateContentSigner);
         X509Certificate intermediateCert = new JcaX509CertificateConverter().getCertificate(intermediateCertHolder);
+
+        // Generate end entity key pair.
+        KeyPair endEntityKeyPair = keyPairGenerator.generateKeyPair();
+        PublicKey endEntityPublicKey = endEntityKeyPair.getPublic();
+        PrivateKey endEntityPrivateKey = endEntityKeyPair.getPrivate();
 
         // Generate end entity certificate
         X509v3CertificateBuilder endEntityCertBuilder = new X509v3CertificateBuilder(
