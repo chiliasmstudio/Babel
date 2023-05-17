@@ -1,5 +1,12 @@
 package com.chiliasmstudio.Babel;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.FileInputStream;
+import java.security.KeyStore;
+
 public class Client {
     private static final String SERVER_HOST = "server_host";
     private static final int SERVER_PORT = 8888;
