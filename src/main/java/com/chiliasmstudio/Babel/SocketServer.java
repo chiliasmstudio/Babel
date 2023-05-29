@@ -152,16 +152,11 @@ public class SocketServer {
         keyStore.load(null, null);
 
         // 載入私鑰
-        BufferedReader privateKeyReader = new BufferedReader(new FileReader(privateKeyPath));
-        StringBuilder privateKeyBuilder = new StringBuilder();
-        String line;
-        while ((line = privateKeyReader.readLine()) != null) {
-            if (!line.startsWith("-----")) {
-                privateKeyBuilder.append(line);
-            }
-        }
-        privateKeyReader.close();
-        byte[] privateKeyBytes = decodeBase64(privateKeyBuilder.toString());
+        PemReader pemReader = new PemReader(new FileReader(privateKeyPath));
+        PemObject pemObject = pemReader.readPemObject();
+        pemReader.close();
+        byte[] privateKeyBytes = pemObject.getContent();
+        PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
 
         // 載入憑證
         FileInputStream certificateInput = new FileInputStream(certificatePath);
@@ -170,19 +165,9 @@ public class SocketServer {
         certificateInput.close();
 
         // 將私鑰和憑證存入 KeyStore
-        PrivateKey privateKey = KeyFactory.getInstance("Ed448").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
-        List<X509Certificate> certificateChain = new ArrayList<>();
-        certificateChain.add(certificate);
-        keyStore.setKeyEntry(alias, privateKey, null, certificateChain.toArray(new X509Certificate[0]));
+        PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
+        keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
 
         return keyStore;
     }
-
-    private static byte[] decodeBase64(String pemData) throws Exception {
-        PemReader pemReader = new PemReader(new StringReader(pemData));
-        PemObject pemObject = pemReader.readPemObject();
-        pemReader.close();
-        return pemObject.getContent();
-    }
-
 }
