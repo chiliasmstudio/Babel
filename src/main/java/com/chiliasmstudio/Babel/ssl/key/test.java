@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 public class test {
+    public static BigInteger serialNumber = BigInteger.valueOf(0L);
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
 
@@ -46,12 +47,14 @@ public class test {
         // Generate root certificate.
         X509v3CertificateBuilder rootCertBuilder = new X509v3CertificateBuilder(
                 new X500Name("CN=Root"),
-                BigInteger.valueOf(1),
+                serialNumber,
                 new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 24),
                 new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365 * 20)),
                 new X500Name("CN=Root"),
                 SubjectPublicKeyInfo.getInstance(rootPublicKey.getEncoded())
         );
+        serialNumber = serialNumber.add(BigInteger.ONE);
+        System.out.println("serial now: " + serialNumber);
 
         // Key usage.
         KeyUsage keyUsage = new KeyUsage(
@@ -103,10 +106,14 @@ public class test {
                 new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365)),
                 new X500Name("CN=Intermediate"),
                 SubjectPublicKeyInfo.getInstance(intermediatePublicKey.getEncoded()));
+        serialNumber = serialNumber.add(BigInteger.ONE);
+        System.out.println("serial now: " + serialNumber);
+
         ContentSigner intermediateContentSigner = new JcaContentSignerBuilder("Ed448").build(rootPrivateKey);
         X509CertificateHolder intermediateCertHolder = intermediateCertBuilder.build(intermediateContentSigner);
         X509Certificate intermediateCert = new JcaX509CertificateConverter().getCertificate(intermediateCertHolder);
 
+        /*
         // Generate end entity key pair.
         KeyPair endEntityKeyPair = keyPairGenerator.generateKeyPair();
         PublicKey endEntityPublicKey = endEntityKeyPair.getPublic();
@@ -133,32 +140,32 @@ public class test {
             pemWriter.writeObject(cert);
         }
         pemWriter.close();
+        */
 
         // Save root certificate as CRT
         try (FileOutputStream fos = new FileOutputStream("./temp/root.crt")) {
             fos.write(rootCert.getEncoded());
         }
-
         // Save root certificate as pem
         try (FileOutputStream fos = new FileOutputStream("./temp/root.pem")) {
             fos.write(convertToPem(rootCert).getBytes());
         }
-
         // Save root private as pem
         writePrivateKeyToPEM(rootPrivateKey,"./temp/rootPrivateKey.pem");
         // Save root public as pem
         writePublicKeyToPEM(rootPublicKey,"./temp/rootPublicKey.pem");
 
-
         // Save intermediate certificate as CRT
         try (FileOutputStream fos = new FileOutputStream("./temp/intermediate.crt")) {
             fos.write(intermediateCert.getEncoded());
         }
-
-        // Save end certificate as CRT
-        try (FileOutputStream fos = new FileOutputStream("./temp/end.crt")) {
-            fos.write(endEntityCert.getEncoded());
+        // Save intermediate certificate as pem
+        try (FileOutputStream fos = new FileOutputStream("./temp/intermediate.pem")) {
+            fos.write(convertToPem(intermediateCert).getBytes());
         }
+
+        GenerateEnd("server",rootCert,intermediateCert,intermediatePrivateKey);
+        GenerateEnd("client",rootCert,intermediateCert,intermediatePrivateKey);
     }
 
     public static String convertToPem(X509Certificate cert) throws Exception {
@@ -190,7 +197,58 @@ public class test {
         }
     }
 
-    public static void GenerateEnd(){
+    public static void GenerateEnd(String name,X509Certificate rootCert,X509Certificate issuerCert,PrivateKey issuer) throws Exception{
+        //Security.addProvider(new BouncyCastleProvider());
 
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed448");
+
+        // Generate end entity key pair.
+        KeyPair endEntityKeyPair = keyPairGenerator.generateKeyPair();
+        PublicKey endEntityPublicKey = endEntityKeyPair.getPublic();
+        PrivateKey endEntityPrivateKey = endEntityKeyPair.getPrivate();
+
+        // Generate end entity certificate
+        X509v3CertificateBuilder endEntityCertBuilder = new X509v3CertificateBuilder(
+                new X500Name("CN=Intermediate"),
+                BigInteger.valueOf(3),
+                new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 24),
+                new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365)),
+                new X500Name("CN="+name),
+                SubjectPublicKeyInfo.getInstance(endEntityPublicKey.getEncoded())
+        );
+        serialNumber = serialNumber.add(BigInteger.ONE);
+        System.out.println("serial now: " + serialNumber);
+
+        ContentSigner endEntityContentSigner = new JcaContentSignerBuilder("Ed448").build(issuer);
+        X509CertificateHolder endEntityCertHolder = endEntityCertBuilder.build(endEntityContentSigner);
+        X509Certificate endEntityCert = new JcaX509CertificateConverter().getCertificate(endEntityCertHolder);
+
+
+        StringBuilder savePathBuilder = new StringBuilder();
+        savePathBuilder.append("./temp/");
+        savePathBuilder.append(name);
+        savePathBuilder.append("/");
+        savePathBuilder.append(name);
+        String savePath = savePathBuilder.toString();
+        new File("./temp/"+name).mkdir();
+
+        // Create certificate chain
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        List<X509Certificate> certChain = Arrays.asList(rootCert, issuerCert, endEntityCert);
+        JcaPEMWriter pemWriter = new JcaPEMWriter(new FileWriter(savePath + "_FullChain.pem"));
+        for (X509Certificate cert : certChain) {
+            pemWriter.writeObject(cert);
+        }
+        pemWriter.close();
+
+        // Save root private as pem
+        writePrivateKeyToPEM(endEntityPrivateKey,savePath + "_PrivateKey.pem");
+        // Save root public as pem
+        writePublicKeyToPEM(endEntityPublicKey,savePath + "_PublicKey.pem");
+
+        // Save end certificate as CRT
+        try (FileOutputStream fos = new FileOutputStream(savePath + ".crt")) {
+            fos.write(endEntityCert.getEncoded());
+        }
     }
 }

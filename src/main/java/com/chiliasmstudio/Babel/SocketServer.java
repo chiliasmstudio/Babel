@@ -1,44 +1,188 @@
 package com.chiliasmstudio.Babel;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.jcajce.interfaces.EdDSAPrivateKey;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.PasswordFinder;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
+
 import javax.net.ssl.*;
-import java.io.FileInputStream;
-import java.security.KeyStore;
+import java.io.*;
+import java.math.BigInteger;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.ECPrivateKeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+
 
 public class SocketServer {
-    private static final int PORT = 8888;
-    private static final String KEYSTORE_PATH = "/path/to/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "keystore_password";
+    public static void main(String[] args) throws Exception {
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust\\"; // 信任憑證的資料夾路徑
+        String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
+        String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
+        String serverKeyPassword = null; // 伺服器私鑰的密碼
 
-    public static void main(String[] args) {
-        try {
-            // 載入憑證
-            KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(new FileInputStream(KEYSTORE_PATH), KEYSTORE_PASSWORD.toCharArray());
+        // 載入信任的憑證
+        TrustManager[] trustManagers = TESTcreateTrustManagers(trustCertFolderPath);
 
-            // 初始化 SSL 上下文
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-            trustManagerFactory.init(keyStore);
-            sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+        // 載入伺服器憑證和私鑰
+        KeyStore serverKeyStore = createKeyStore(serverKeyPath,serverCertPath,"server");//KeyStore.getInstance("PKCS12");
+        FileInputStream serverCertInput = new FileInputStream(serverCertPath);
+        FileInputStream serverKeyInput = new FileInputStream(serverKeyPath);
+        //serverKeyStore.load(serverCertInput, null);
+        serverCertInput.close();
+        serverKeyInput.close();
 
-            // 建立 SSLServerSocket
-            SSLServerSocketFactory socketFactory = sslContext.getServerSocketFactory();
-            SSLServerSocket serverSocket = (SSLServerSocket) socketFactory.createServerSocket(PORT);
+        // 建立 KeyManager，使用伺服器憑證和私鑰
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(serverKeyStore, serverKeyPassword.toCharArray());
+        KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 
-            // 只接受受信任的憑證連線
-            serverSocket.setNeedClientAuth(true);
+        // 建立 SSLContext，並設定 TrustManager 和 KeyManager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers, trustManagers, null);
 
-            System.out.println("等待客戶端連線...");
-            SSLSocket clientSocket = (SSLSocket) serverSocket.accept();
-            System.out.println("已建立連線");
+        // 建立 SSLServerSocketFactory
+        SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
 
-            // 在此處處理客戶端連線
+        // 建立 SSLServerSocket
+        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(65534);
+
+        while (true) {
+            // 等待客戶端連線
+            SSLSocket socket = (SSLSocket) serverSocket.accept();
+
+            // 進行通訊
+            // ...
 
             // 關閉連線
-            clientSocket.close();
-            serverSocket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            socket.close();
         }
     }
+
+    private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
+
+        // 載入信任的憑證
+        FileInputStream trustCertInput = new FileInputStream(trustCertFolderPath);
+        trustKeyStore.load(trustCertInput, null);
+        trustCertInput.close();
+
+        // 初始化 TrustManagerFactory
+        trustManagerFactory.init(trustKeyStore);
+
+        // 取得 TrustManager
+        return trustManagerFactory.getTrustManagers();
+    }
+
+    public static TrustManager[] TESTcreateTrustManagers(String trustCertFolderPath) throws Exception {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
+        String keyStorePassword = "changeit";
+        trustKeyStore.load(null, keyStorePassword.toCharArray());
+
+        // 載入信任的憑證
+        File folder = new File(trustCertFolderPath);
+        for (File file : folder.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".pem")) {
+                FileInputStream certInputStream = new FileInputStream(file);
+                X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(certInputStream);
+                trustKeyStore.setCertificateEntry(cert.getSubjectDN().getName(), cert);
+            }
+        }
+
+        // 初始化 TrustManagerFactory
+        trustManagerFactory.init(trustKeyStore);
+
+        // 取得 TrustManager
+        return trustManagerFactory.getTrustManagers();
+    }
+
+    public static KeyStore loadServerKeyStore(String serverCertPath, String serverKeyPath) throws Exception {
+        // 註冊 Bouncy Castle 提供者
+        Security.addProvider(new BouncyCastleProvider());
+
+        // 創建空的 KeyStore 物件
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        keyStore.load(null, null);
+
+        // 載入伺服器憑證
+        FileInputStream certInput = new FileInputStream(serverCertPath);
+        X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(certInput);
+        certInput.close();
+
+        // 載入伺服器私鑰
+        FileInputStream keyInput = new FileInputStream(serverKeyPath);
+        byte[] keyBytes = new byte[keyInput.available()];
+        keyInput.read(keyBytes);
+        keyInput.close();
+        System.out.println(new String((keyBytes)));
+
+
+        // 將伺服器憑證和私鑰存入 KeyStore
+        List<X509Certificate> certificateChain = new ArrayList<>();
+        certificateChain.add(certificate);
+        //keyStore.setKeyEntry("server", loadPrivateKey(serverKeyPath).getEncoded(), certificateChain.toArray(new X509Certificate[0]));
+
+        return keyStore;
+    }
+
+    public static KeyStore createKeyStore(String privateKeyPath, String certificatePath, String alias) throws Exception {
+        // 註冊 Bouncy Castle 提供者
+        Security.addProvider(new BouncyCastleProvider());
+
+        // 創建空的 KeyStore 物件
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        keyStore.load(null, null);
+
+        // 載入私鑰
+        BufferedReader privateKeyReader = new BufferedReader(new FileReader(privateKeyPath));
+        StringBuilder privateKeyBuilder = new StringBuilder();
+        String line;
+        while ((line = privateKeyReader.readLine()) != null) {
+            if (!line.startsWith("-----")) {
+                privateKeyBuilder.append(line);
+            }
+        }
+        privateKeyReader.close();
+        byte[] privateKeyBytes = decodeBase64(privateKeyBuilder.toString());
+
+        // 載入憑證
+        FileInputStream certificateInput = new FileInputStream(certificatePath);
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(certificateInput);
+        certificateInput.close();
+
+        // 將私鑰和憑證存入 KeyStore
+        PrivateKey privateKey = KeyFactory.getInstance("Ed448").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+        List<X509Certificate> certificateChain = new ArrayList<>();
+        certificateChain.add(certificate);
+        keyStore.setKeyEntry(alias, privateKey, null, certificateChain.toArray(new X509Certificate[0]));
+
+        return keyStore;
+    }
+
+    private static byte[] decodeBase64(String pemData) throws Exception {
+        PemReader pemReader = new PemReader(new StringReader(pemData));
+        PemObject pemObject = pemReader.readPemObject();
+        pemReader.close();
+        return pemObject.getContent();
+    }
+
 }

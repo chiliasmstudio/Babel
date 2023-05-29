@@ -1,42 +1,73 @@
 package com.chiliasmstudio.Babel;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.FileInputStream;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import javax.net.ssl.*;
+import java.io.*;
 import java.security.KeyStore;
+import java.security.Security;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 public class Client {
-    private static final String SERVER_HOST = "server_host";
-    private static final int SERVER_PORT = 8888;
-    private static final String TRUSTSTORE_PATH = "/path/to/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "truststore_password";
+    public static void main(String[] args) throws Exception {
+        String trustCertFolderPath = "/path/to/trust_certificates_folder"; // 信任憑證的資料夾路徑
+        String clientCertPath = "/path/to/client_certificate.pem"; // 客戶端憑證的路徑
+        String clientKeyPath = "/path/to/client_private_key.pem"; // 客戶端私鑰的路徑
+        String clientKeyPassword = "client_key_password"; // 客戶端私鑰的密碼
 
-    public static void main(String[] args) {
-        try {
-            // 載入信任的憑證
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            trustStore.load(new FileInputStream(TRUSTSTORE_PATH), TRUSTSTORE_PASSWORD.toCharArray());
+        // 載入信任的憑證
+        TrustManager[] trustManagers = createTrustManagers(trustCertFolderPath);
 
-            // 初始化 SSL 上下文
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-            trustManagerFactory.init(trustStore);
-            sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+        // 載入客戶端憑證和私鑰
+        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
+        FileInputStream clientCertInput = new FileInputStream(clientCertPath);
+        FileInputStream clientKeyInput = new FileInputStream(clientKeyPath);
+        clientKeyStore.load(clientCertInput, clientKeyPassword.toCharArray());
+        clientCertInput.close();
+        clientKeyInput.close();
 
-            // 建立 SSLSocket
-            SSLSocketFactory socketFactory = sslContext.getSocketFactory();
-            SSLSocket socket = (SSLSocket) socketFactory.createSocket(SERVER_HOST, SERVER_PORT);
-            // 僅信任指定的憑證
-            socket.setNeedClientAuth(true);
+        // 建立 KeyManager，使用客戶端憑證和私鑰
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, clientKeyPassword.toCharArray());
+        KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 
-            // 在此處處理與伺服器的連線
+        // 建立 SSLContext，並設定 TrustManager 和 KeyManager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers, trustManagers, null);
 
-            // 關閉連線
-            socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        // 建立 SSLSocketFactory
+        SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+
+        // 建立 SSLSocket
+        SSLSocket socket = (SSLSocket) socketFactory.createSocket("server_hostname", 65534); // 請將 "server_hostname" 替換為實際的伺服器主機名稱
+        socket.startHandshake();
+
+        // 進行通訊
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line);
         }
+
+        // 關閉連線
+        reader.close();
+        socket.close();
+    }
+
+    private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
+
+        // 載入信任的憑證
+        FileInputStream trustCertInput = new FileInputStream(trustCertFolderPath);
+        trustKeyStore.load(trustCertInput, null);
+        trustCertInput.close();
+
+        // 初始化 TrustManagerFactory
+        trustManagerFactory.init(trustKeyStore);
+
+        // 取得 TrustManager
+        return trustManagerFactory.getTrustManagers();
     }
 }
