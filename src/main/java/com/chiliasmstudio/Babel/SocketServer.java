@@ -156,7 +156,7 @@ public class SocketServer {
         PemObject pemObject = pemReader.readPemObject();
         pemReader.close();
         byte[] privateKeyBytes = pemObject.getContent();
-        PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
+        //PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
 
         // 載入憑證
         FileInputStream certificateInput = new FileInputStream(certificatePath);
@@ -165,8 +165,8 @@ public class SocketServer {
         certificateInput.close();
 
         // 將私鑰和憑證存入 KeyStore
-        PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
-        keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
+        //PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
+        //keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
 
         return keyStore;
     }
