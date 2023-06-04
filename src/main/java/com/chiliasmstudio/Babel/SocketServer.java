@@ -44,7 +44,7 @@ public class SocketServer {
         KeyStore serverKeyStore = createKeyStore(serverKeyPath,serverCertPath,"server");//KeyStore.getInstance("PKCS12");
         FileInputStream serverCertInput = new FileInputStream(serverCertPath);
         FileInputStream serverKeyInput = new FileInputStream(serverKeyPath);
-        //serverKeyStore.load(serverCertInput, null);
+        serverKeyStore.load(serverCertInput, null);
         serverCertInput.close();
         serverKeyInput.close();
 
@@ -156,7 +156,7 @@ public class SocketServer {
         PemObject pemObject = pemReader.readPemObject();
         pemReader.close();
         byte[] privateKeyBytes = pemObject.getContent();
-        //PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
+        PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
 
         // 載入憑證
         FileInputStream certificateInput = new FileInputStream(certificatePath);
@@ -164,9 +164,9 @@ public class SocketServer {
         X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(certificateInput);
         certificateInput.close();
 
-        // 將私鑰和憑證存入 KeyStore
-        //PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
-        //keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
+        //將私鑰和憑證存入 KeyStore
+        PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
+        keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
 
         return keyStore;
     }
