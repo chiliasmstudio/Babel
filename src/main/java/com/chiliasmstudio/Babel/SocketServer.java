@@ -148,15 +148,14 @@ public class SocketServer {
         Security.addProvider(new BouncyCastleProvider());
 
         // 創建空的 KeyStore 物件
-        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        KeyStore keyStore = KeyStore.getInstance("PKCS12","BC");
         keyStore.load(null, null);
 
         // 載入私鑰
-        PemReader pemReader = new PemReader(new FileReader(privateKeyPath));
-        PemObject pemObject = pemReader.readPemObject();
-        pemReader.close();
-        byte[] privateKeyBytes = pemObject.getContent();
-        PEMKeyPair pemKeyPair = new JcaPEMKeyConverter().getKeyPair(pemObject).toPEMKeyPair();
+        PEMParser pemParser = new PEMParser(new FileReader(privateKeyPath));
+        Object pemObject = pemParser.readObject();
+        PrivateKey privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey((PrivateKeyInfo) pemObject);
+        pemParser.close();
 
         // 載入憑證
         FileInputStream certificateInput = new FileInputStream(certificatePath);
@@ -164,8 +163,7 @@ public class SocketServer {
         X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(certificateInput);
         certificateInput.close();
 
-        //將私鑰和憑證存入 KeyStore
-        PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemKeyPair.getPrivateKeyInfo());
+        // 將私鑰和憑證存入 KeyStore
         keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
 
         return keyStore;
