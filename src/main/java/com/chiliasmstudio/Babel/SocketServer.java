@@ -12,6 +12,7 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.PasswordFinder;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.util.encoders.Base64Encoder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -19,23 +20,23 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 
 public class SocketServer {
     public static void main(String[] args) throws Exception {
+
         String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust\\"; // 信任憑證的資料夾路徑
         String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
         String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
-        String serverKeyPassword = null; // 伺服器私鑰的密碼
+        String serverKeyPassword = ""; // 伺服器私鑰的密碼
 
         // 載入信任的憑證
         TrustManager[] trustManagers = TESTcreateTrustManagers(trustCertFolderPath);
@@ -44,7 +45,7 @@ public class SocketServer {
         KeyStore serverKeyStore = createKeyStore(serverKeyPath,serverCertPath,"server");//KeyStore.getInstance("PKCS12");
         FileInputStream serverCertInput = new FileInputStream(serverCertPath);
         FileInputStream serverKeyInput = new FileInputStream(serverKeyPath);
-        serverKeyStore.load(serverCertInput, null);
+        //serverKeyStore.load(serverCertInput, null);
         serverCertInput.close();
         serverKeyInput.close();
 
@@ -63,6 +64,7 @@ public class SocketServer {
         // 建立 SSLServerSocket
         SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(65534);
 
+        System.out.println("Server start!");
         while (true) {
             // 等待客戶端連線
             SSLSocket socket = (SSLSocket) serverSocket.accept();
@@ -165,6 +167,24 @@ public class SocketServer {
 
         // 將私鑰和憑證存入 KeyStore
         keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
+
+        // DEBUG
+        try {
+            Enumeration<String> enumeration = keyStore.aliases();
+            while(enumeration.hasMoreElements()) {
+                String aliasA = enumeration.nextElement();
+                System.out.println("alias name: " + aliasA);
+                Certificate certificateA = keyStore.getCertificate(aliasA);
+                System.out.println(certificate.toString());
+
+                Key key = keyStore.getKey(alias,"".toCharArray());
+                String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
+                System.out.println("key ? " + encodedKey);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         return keyStore;
     }
