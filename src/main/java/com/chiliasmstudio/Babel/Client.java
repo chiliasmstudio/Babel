@@ -11,10 +11,10 @@ import java.security.cert.X509Certificate;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "/path/to/trust_certificates_folder"; // 信任憑證的資料夾路徑
-        String clientCertPath = "/path/to/client_certificate.pem"; // 客戶端憑證的路徑
-        String clientKeyPath = "/path/to/client_private_key.pem"; // 客戶端私鑰的路徑
-        String clientKeyPassword = "client_key_password"; // 客戶端私鑰的密碼
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust\\root.crt"; // 信任憑證的資料夾路徑
+        String clientCertPath = "C:\\code\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
+        String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
+        String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
         TrustManager[] trustManagers = createTrustManagers(trustCertFolderPath);

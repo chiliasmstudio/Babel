@@ -33,7 +33,7 @@ import java.util.*;
 public class SocketServer {
     public static void main(String[] args) throws Exception {
 
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust\\"; // 信任憑證的資料夾路徑
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\"; // 信任憑證的資料夾路徑
         String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
         String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
         String serverKeyPassword = ""; // 伺服器私鑰的密碼
