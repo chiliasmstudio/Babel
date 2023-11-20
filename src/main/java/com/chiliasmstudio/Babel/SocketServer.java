@@ -33,9 +33,9 @@ import java.util.*;
 public class SocketServer {
     public static void main(String[] args) throws Exception {
 
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
-        String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
+        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String serverCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
+        String serverKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
         String serverKeyPassword = ""; // 伺服器私鑰的密碼
 
         // 載入信任的憑證
@@ -62,13 +62,13 @@ public class SocketServer {
         SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
 
         // 建立 SSLServerSocket
-        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(65534);
+        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(81);
 
         System.out.println("Server start!");
         while (true) {
             // 等待客戶端連線
             SSLSocket socket = (SSLSocket) serverSocket.accept();
-
+            System.out.println("client connect");
             // 進行通訊
             // ...
 

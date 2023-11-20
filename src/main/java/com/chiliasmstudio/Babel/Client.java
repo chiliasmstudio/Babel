@@ -19,9 +19,9 @@ import java.util.Enumeration;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String clientCertPath = "C:\\code\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
-        String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
+        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String clientCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
+        String clientKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
         String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
@@ -48,8 +48,9 @@ public class Client {
         SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
         // 建立 SSLSocket
-        SSLSocket socket = (SSLSocket) socketFactory.createSocket("server_hostname", 65534); // 請將 "server_hostname" 替換為實際的伺服器主機名稱
+        SSLSocket socket = (SSLSocket) socketFactory.createSocket("127.0.0.1", 81); // 請將 "server_hostname" 替換為實際的伺服器主機名稱
         socket.startHandshake();
+        System.out.println("Connect!");
 
         // 進行通訊
         BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
