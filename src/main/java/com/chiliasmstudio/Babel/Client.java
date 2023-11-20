@@ -1,31 +1,39 @@
 package com.chiliasmstudio.Babel;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.security.Key;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.Security;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.Enumeration;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust\\root.crt"; // 信任憑證的資料夾路徑
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
         String clientCertPath = "C:\\code\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
         String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
         String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
-        TrustManager[] trustManagers = createTrustManagers(trustCertFolderPath);
+        TrustManager[] trustManagers = TESTcreateTrustManagers(trustCertFolderPath);
 
         // 載入客戶端憑證和私鑰
-        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
-        FileInputStream clientCertInput = new FileInputStream(clientCertPath);
-        FileInputStream clientKeyInput = new FileInputStream(clientKeyPath);
-        clientKeyStore.load(clientCertInput, clientKeyPassword.toCharArray());
-        clientCertInput.close();
-        clientKeyInput.close();
+        KeyStore clientKeyStore = createKeyStore(clientKeyPath,clientCertPath,"client");
+        //FileInputStream clientCertInput = new FileInputStream(clientCertPath);
+        //FileInputStream clientKeyInput = new FileInputStream(clientKeyPath);
+        //clientKeyStore.load(clientCertInput, clientKeyPassword.toCharArray());
+        //clientCertInput.close();
+        //clientKeyInput.close();
 
         // 建立 KeyManager，使用客戶端憑證和私鑰
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
@@ -55,7 +63,7 @@ public class Client {
         socket.close();
     }
 
-    private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {
+    /*private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
 
@@ -69,5 +77,71 @@ public class Client {
 
         // 取得 TrustManager
         return trustManagerFactory.getTrustManagers();
+    }*/
+    public static TrustManager[] TESTcreateTrustManagers(String trustCertFolderPath) throws Exception {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
+        String keyStorePassword = "changeit";
+        trustKeyStore.load(null, keyStorePassword.toCharArray());
+
+        // 載入信任的憑證
+        File folder = new File(trustCertFolderPath);
+        for (File file : folder.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".pem")) {
+                FileInputStream certInputStream = new FileInputStream(file);
+                X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(certInputStream);
+                trustKeyStore.setCertificateEntry(cert.getSubjectDN().getName(), cert);
+            }
+        }
+
+        // 初始化 TrustManagerFactory
+        trustManagerFactory.init(trustKeyStore);
+
+        // 取得 TrustManager
+        return trustManagerFactory.getTrustManagers();
+    }
+
+    public static KeyStore createKeyStore(String privateKeyPath, String certificatePath, String alias) throws Exception {
+        // 註冊 Bouncy Castle 提供者
+        Security.addProvider(new BouncyCastleProvider());
+
+        // 創建空的 KeyStore 物件
+        KeyStore keyStore = KeyStore.getInstance("PKCS12","BC");
+        keyStore.load(null, null);
+
+        // 載入私鑰
+        PEMParser pemParser = new PEMParser(new FileReader(privateKeyPath));
+        Object pemObject = pemParser.readObject();
+        PrivateKey privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey((PrivateKeyInfo) pemObject);
+        pemParser.close();
+
+        // 載入憑證
+        FileInputStream certificateInput = new FileInputStream(certificatePath);
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(certificateInput);
+        certificateInput.close();
+
+        // 將私鑰和憑證存入 KeyStore
+        keyStore.setKeyEntry(alias, privateKey, null, new X509Certificate[]{certificate});
+
+        // DEBUG
+        try {
+            Enumeration<String> enumeration = keyStore.aliases();
+            while(enumeration.hasMoreElements()) {
+                String aliasA = enumeration.nextElement();
+                System.out.println("alias name: " + aliasA);
+                Certificate certificateA = keyStore.getCertificate(aliasA);
+                System.out.println(certificate.toString());
+
+                Key key = keyStore.getKey(alias,"".toCharArray());
+                String encodedKey = Base64.getEncoder().encodeToString(key.getEncoded());
+                System.out.println("key ? " + encodedKey);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return keyStore;
     }
 }
