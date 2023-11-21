@@ -1,5 +1,6 @@
 package com.chiliasmstudio.Babel;
 
+import com.google.gson.Gson;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -28,14 +29,17 @@ import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Handler;
 
 
 public class SocketServer {
     public static void main(String[] args) throws Exception {
 
-        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String serverCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
-        String serverKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
+        String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
         String serverKeyPassword = ""; // 伺服器私鑰的密碼
 
         // 載入信任的憑證
@@ -63,18 +67,53 @@ public class SocketServer {
 
         // 建立 SSLServerSocket
         SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(81);
-
+        serverSocket.setNeedClientAuth(true);
         System.out.println("Server start!");
+        ExecutorService pool = Executors.newFixedThreadPool(8);
         while (true) {
+            pool.execute(new Handler((SSLSocket) serverSocket.accept()));
+        }
+        /*while (true) {
             // 等待客戶端連線
             SSLSocket socket = (SSLSocket) serverSocket.accept();
+            in = new Scanner(socket.getInputStream());
+            out = new PrintWriter(socket.getOutputStream(), true);
             System.out.println("client connect");
             // 進行通訊
             // ...
 
             // 關閉連線
-            socket.close();
+            //socket.close();
+        }*/
+    }
+
+    private static class Handler implements Runnable {
+        private SSLSocket socket;
+        private Scanner in;
+        private PrintWriter out;
+
+        public Handler(SSLSocket socket) {
+            this.socket = socket;
         }
+
+        @Override
+        public void run() {
+            System.out.println("New client connect");
+            System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
+            try {
+                in = new Scanner(socket.getInputStream());
+                out = new PrintWriter(socket.getOutputStream(), true);
+
+                while (true) {
+                    if(!in.hasNextLine())
+                        return;
+                    System.out.println("Hello world");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        //End run
     }
 
     private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {

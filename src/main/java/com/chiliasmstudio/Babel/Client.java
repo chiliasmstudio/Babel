@@ -16,12 +16,13 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.Scanner;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String clientCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
-        String clientKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String clientCertPath = "C:\\code\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
+        String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
         String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
@@ -49,19 +50,22 @@ public class Client {
 
         // 建立 SSLSocket
         SSLSocket socket = (SSLSocket) socketFactory.createSocket("127.0.0.1", 81); // 請將 "server_hostname" 替換為實際的伺服器主機名稱
-        socket.startHandshake();
+        //socket.startHandshake();
         System.out.println("Connect!");
 
         // 進行通訊
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        Scanner in = new Scanner(socket.getInputStream());
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        //BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
+        while (true) {
+            if(in.hasNextLine())
+                System.out.println(in.nextLine());
         }
 
         // 關閉連線
-        reader.close();
-        socket.close();
+        //reader.close();
+        //socket.close();
     }
 
     /*private static TrustManager[] createTrustManagers(String trustCertFolderPath) throws Exception {
