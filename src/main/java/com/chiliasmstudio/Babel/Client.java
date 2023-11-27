@@ -14,15 +14,16 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.Scanner;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String clientCertPath = "C:\\code\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
-        String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
+        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String clientCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
+        String clientKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
         String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
@@ -45,6 +46,9 @@ public class Client {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(keyManagers, trustManagers, null);
 
+        System.out.println(sslContext.getSupportedSSLParameters());
+        System.out.println(Arrays.toString(sslContext.getSupportedSSLParameters().getCipherSuites()));
+
         // 建立 SSLSocketFactory
         SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
@@ -58,9 +62,11 @@ public class Client {
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         //BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         String line;
+        Thread.sleep(3000L);
+        out.println("Hello");
         while (true) {
-            if(in.hasNextLine())
-                System.out.println(in.nextLine());
+            out.println("Hello");
+            //Thread.sleep(1000L);
         }
 
         // 關閉連線

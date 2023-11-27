@@ -37,9 +37,9 @@ import java.util.logging.Handler;
 public class SocketServer {
     public static void main(String[] args) throws Exception {
 
-        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String serverCertPath = "C:\\code\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
-        String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
+        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String serverCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
+        String serverKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
         String serverKeyPassword = ""; // 伺服器私鑰的密碼
 
         // 載入信任的憑證
@@ -67,7 +67,10 @@ public class SocketServer {
 
         // 建立 SSLServerSocket
         SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(81);
-        serverSocket.setNeedClientAuth(true);
+        serverSocket.setNeedClientAuth(false);
+        serverSocket.setEnabledProtocols(new String[]{"TLSv1.2","TLSv1.3"});
+        System.out.println(Arrays.toString(serverSocket.getEnabledCipherSuites()));
+        System.out.println(Arrays.toString(serverSocket.getEnabledProtocols()));
         System.out.println("Server start!");
         ExecutorService pool = Executors.newFixedThreadPool(8);
         while (true) {
@@ -89,8 +92,8 @@ public class SocketServer {
 
     private static class Handler implements Runnable {
         private SSLSocket socket;
-        private Scanner in;
         private PrintWriter out;
+        private BufferedReader in;
 
         public Handler(SSLSocket socket) {
             this.socket = socket;
@@ -101,14 +104,9 @@ public class SocketServer {
             System.out.println("New client connect");
             System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
             try {
-                in = new Scanner(socket.getInputStream());
                 out = new PrintWriter(socket.getOutputStream(), true);
-
-                while (true) {
-                    if(!in.hasNextLine())
-                        return;
-                    System.out.println("Hello world");
-                }
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                System.out.println(in.readLine());
             } catch (Exception e) {
                 e.printStackTrace();
             }
