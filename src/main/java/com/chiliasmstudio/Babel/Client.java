@@ -21,9 +21,11 @@ import java.util.Scanner;
 
 public class Client {
     public static void main(String[] args) throws Exception {
-        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String clientCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_FullChain.pem"; // 客戶端憑證的路徑
-        String clientKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
+        System.setProperty("javax.net.debug", "ssl:handshake");
+        Security.addProvider(new BouncyCastleProvider());
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String clientCertPath = "C:\\code\\Babel\\temp\\client\\client.crt"; // 客戶端憑證的路徑
+        String clientKeyPath = "C:\\code\\Babel\\temp\\client\\client_PrivateKey.pem"; // 客戶端私鑰的路徑
         String clientKeyPassword = ""; // 客戶端私鑰的密碼
 
         // 載入信任的憑證
@@ -43,10 +45,10 @@ public class Client {
         KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 
         // 建立 SSLContext，並設定 TrustManager 和 KeyManager
-        SSLContext sslContext = SSLContext.getInstance("TLS");
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3");
         sslContext.init(keyManagers, trustManagers, null);
 
-        System.out.println(sslContext.getSupportedSSLParameters());
+        System.out.println(Arrays.toString(SSLContext.getDefault().getSupportedSSLParameters().getCipherSuites()));
         System.out.println(Arrays.toString(sslContext.getSupportedSSLParameters().getCipherSuites()));
 
         // 建立 SSLSocketFactory
@@ -91,6 +93,7 @@ public class Client {
     }*/
     public static TrustManager[] TESTcreateTrustManagers(String trustCertFolderPath) throws Exception {
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        System.out.println(trustManagerFactory.getAlgorithm());
         KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
         String keyStorePassword = "changeit";
         trustKeyStore.load(null, keyStorePassword.toCharArray());
@@ -107,6 +110,24 @@ public class Client {
 
         // 初始化 TrustManagerFactory
         trustManagerFactory.init(trustKeyStore);
+
+
+
+        // DEBUG
+        try {
+            System.out.println("================================================================");
+            Enumeration<String> enumeration = trustKeyStore.aliases();
+            while(enumeration.hasMoreElements()) {
+                String aliasA = enumeration.nextElement();
+                System.out.println("alias name: " + aliasA);
+                Certificate certificateA = trustKeyStore.getCertificate(aliasA);
+                System.out.println(certificateA.toString());
+            }
+            System.out.println("================================================================");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
 
         // 取得 TrustManager
         return trustManagerFactory.getTrustManagers();

@@ -36,10 +36,13 @@ import java.util.logging.Handler;
 
 public class SocketServer {
     public static void main(String[] args) throws Exception {
-
-        String trustCertFolderPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
-        String serverCertPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_FullChain.pem"; // 伺服器憑證的路徑
-        String serverKeyPath = "C:\\Users\\paul0\\code\\java\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
+        System.setProperty("javax.net.debug", "ssl:handshake");
+        Security.addProvider(new BouncyCastleProvider());
+        Provider [] providerList = Security.getProviders();
+        System.out.println(Arrays.toString(providerList));
+        String trustCertFolderPath = "C:\\code\\Babel\\temp\\atrust"; // 信任憑證的資料夾路徑
+        String serverCertPath = "C:\\code\\Babel\\temp\\server\\server.crt"; // 伺服器憑證的路徑
+        String serverKeyPath = "C:\\code\\Babel\\temp\\server\\server_PrivateKey.pem"; // 伺服器私鑰的路徑
         String serverKeyPassword = ""; // 伺服器私鑰的密碼
 
         // 載入信任的憑證
@@ -59,7 +62,7 @@ public class SocketServer {
         KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 
         // 建立 SSLContext，並設定 TrustManager 和 KeyManager
-        SSLContext sslContext = SSLContext.getInstance("TLS");
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3");
         sslContext.init(keyManagers, trustManagers, null);
 
         // 建立 SSLServerSocketFactory
@@ -68,7 +71,7 @@ public class SocketServer {
         // 建立 SSLServerSocket
         SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(81);
         serverSocket.setNeedClientAuth(false);
-        serverSocket.setEnabledProtocols(new String[]{"TLSv1.2","TLSv1.3"});
+        serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
         System.out.println(Arrays.toString(serverSocket.getEnabledCipherSuites()));
         System.out.println(Arrays.toString(serverSocket.getEnabledProtocols()));
         System.out.println("Server start!");

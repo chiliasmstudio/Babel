@@ -77,14 +77,14 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.chiliasmstudio.Babel.SocketServer</mainClass>
+                                    <mainClass>com.chiliasmstudio.Babel.server.SocketServer</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <finalName>server-${maven.build.timestamp}</finalName>
+                            <finalName>server</finalName>
                         </configuration>
                     </execution>
                     <execution>
@@ -96,14 +96,14 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.chiliasmstudio.Babel.Client</mainClass>
+                                    <mainClass>com.chiliasmstudio.Babel.client.Client</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <finalName>client-${maven.build.timestamp}</finalName>
+                            <finalName>client</finalName>
                         </configuration>
                     </execution>
                 </executions>
