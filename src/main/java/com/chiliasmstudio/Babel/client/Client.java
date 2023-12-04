@@ -6,10 +6,7 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
 import javax.net.ssl.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -59,10 +56,10 @@ public class Client {
         // 進行通訊
         Scanner in = new Scanner(socket.getInputStream());
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        //BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        String line;
         Thread.sleep(3000L);
         out.println("Hello");
+        MessageHandler messageHandler = new MessageHandler();
+        messageHandler.start();
         while (true) {
             out.println("Hello");
             Thread.sleep(5000L);
@@ -72,4 +69,12 @@ public class Client {
         //reader.close();
         //socket.close();
     }
+
+    static class MessageHandler extends Thread {
+        public void run() {
+            System.out.println("Hello");
+        }
+    }
 }
+
+

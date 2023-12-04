@@ -6,17 +6,16 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.security.KeyStore;
 import java.security.Security;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class SocketServer extends Thread{
+public class Server {
     private static Set<SSLSocket> clientsSocket = new HashSet<>();
 
-    public SocketServer() throws Exception {
+    public static void main(String[] args) throws Exception {
         //System.setProperty("javax.net.debug", "ssl:handshake");
         Security.addProvider(new BouncyCastleProvider());
 
