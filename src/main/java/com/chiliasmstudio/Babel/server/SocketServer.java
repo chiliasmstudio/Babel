@@ -83,11 +83,10 @@ public class SocketServer extends Thread{
         @Override
         public void run() {
             try {
-                System.out.println("New client connect");
-                System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
                 out = new PrintWriter(socket.getOutputStream(), true);
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 name = in.readLine();
+                System.out.println("[INFO]: "+ name + " join the chat. "+ "Ip: " + socket.getRemoteSocketAddress().toString());
                 for (ClientObject stuff:clientObjects) {
                     if(stuff.getName().equalsIgnoreCase(name)){
                         out.println("REJECT:NAME_CONFLICT");
@@ -122,9 +121,7 @@ public class SocketServer extends Thread{
                 System.err.println(e.getMessage());
             } finally {
                 clientObjects.remove(clientObject);
-                System.out.println("Client quit");
-                System.out.println("Ip: " + socket.getRemoteSocketAddress().toString());
-                System.out.println("Name: "+name);
+                System.out.println("[INFO]: "+ name + " left the chat. "+ "Ip: " + socket.getRemoteSocketAddress().toString());
                 try {
                     socket.close();
                 } catch (IOException e) {
