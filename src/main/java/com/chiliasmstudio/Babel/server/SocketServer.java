@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 
 
 public class SocketServer extends Thread{
-    private static Set<SSLSocket> clientsSocket = new HashSet<>();
+    private static Set<ClientObject> clientObjects = new HashSet<>();
 
     public SocketServer() throws Exception {
         //System.setProperty("javax.net.debug", "ssl:handshake");
@@ -49,7 +49,7 @@ public class SocketServer extends Thread{
         serverSocket.setNeedClientAuth(true);
         serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
         System.out.println("Server start!");
-        ExecutorService pool = Executors.newFixedThreadPool(8);
+        ExecutorService pool = Executors.newFixedThreadPool(10);
 
         while (true) {
             pool.execute(new Handler((SSLSocket) serverSocket.accept()));
@@ -69,9 +69,12 @@ public class SocketServer extends Thread{
     }
 
     private static class Handler implements Runnable {
+        private ClientObject clientObject;
+        private String name;
         private final SSLSocket socket;
         private PrintWriter out;
         private BufferedReader in;
+
 
         public Handler(SSLSocket socket) {
             this.socket = socket;
@@ -79,21 +82,49 @@ public class SocketServer extends Thread{
 
         @Override
         public void run() {
-            System.out.println("New client connect");
-            System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
             try {
+                System.out.println("New client connect");
+                System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
                 out = new PrintWriter(socket.getOutputStream(), true);
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                clientsSocket.add(socket);
-                out.println("Hello world!");
-                while (true)
-                    System.out.println(in.readLine());
+                name = in.readLine();
+                for (ClientObject stuff:clientObjects) {
+                    if(stuff.getName().equalsIgnoreCase(name)){
+                        out.println("REJECT:NAME_CONFLICT");
+                        //System.err.println("Name conflict: " + name);
+                        throw new Exception("Name conflict: " + name);
+                    }
+                }
+                out.println("ACCEPT");
+                System.out.println(name+" join the chat");
+                for (ClientObject clients:clientObjects) {
+                    clients.getPrinter().println(name+" join the chat");
+                }
+
+                clientObject = new ClientObject(name,socket,out);
+                clientObjects.add(clientObject);
+
+                while (true){
+                    String line =in.readLine();
+                    switch (line) {
+                        case "null":break;
+                        default: {
+                            System.out.println("["+name+"]: "+line);
+                            for (ClientObject clients:clientObjects) {
+                                clients.getPrinter().println("["+name+"]: "+line);
+                            }
+                        }
+                    }
+
+                }
+
             } catch (Exception e) {
                 System.err.println(e.getMessage());
             } finally {
-                clientsSocket.remove(socket);
+                clientObjects.remove(clientObject);
                 System.out.println("Client quit");
-                System.out.println("ip: " + socket.getRemoteSocketAddress().toString());
+                System.out.println("Ip: " + socket.getRemoteSocketAddress().toString());
+                System.out.println("Name: "+name);
                 try {
                     socket.close();
                 } catch (IOException e) {

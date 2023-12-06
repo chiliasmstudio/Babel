@@ -77,7 +77,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.chiliasmstudio.Babel.server.SocketServer</mainClass>
+                                    <mainClass>com.chiliasmstudio.Babel.server.ServerMain</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
@@ -96,7 +96,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.chiliasmstudio.Babel.client.Client</mainClass>
+                                    <mainClass>com.chiliasmstudio.Babel.client.ClientMain</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

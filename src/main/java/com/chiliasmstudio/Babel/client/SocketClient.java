@@ -4,18 +4,16 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.net.SocketException;
 import java.security.*;
 import java.security.cert.CertificateException;
 
 public class SocketClient extends Thread{
     private PrintWriter clientWriter;
     public boolean isConnect = false;
-    public SocketClient() throws Exception{
-
-
-        // 關閉連線
-        //reader.close();
-        //socket.close();
+    public String userName = "anonymous";
+    public SocketClient(String userName) throws Exception{
+        this.userName = userName;
     }
 
     public void run(){
@@ -48,26 +46,40 @@ public class SocketClient extends Thread{
             SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
             // 建立 SSLSocket
-            SSLSocket socket = (SSLSocket) socketFactory.createSocket("127.0.0.1", 81); // 請將 "server_hostname" 替換為實際的伺服器主機名稱
-            //socket.startHandshake();
+            SSLSocket socket = (SSLSocket) socketFactory.createSocket("127.0.0.1", 81);
+
+            // Connected to server, notify the main class.
             System.out.println("Connect!");
             isConnect = true;
-            notify();
+            synchronized (this){
+                notify();
+            }
 
             // 進行通訊
             //Scanner in = new Scanner(socket.getInputStream());
             clientWriter = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            Thread.sleep(3000L);
-            clientWriter.println("Hello");
-            //MessageHandler messageHandler = new MessageHandler(in);
-            //messageHandler.start();
-            while (true) {
-                System.out.println(in.readLine());
+            clientWriter.println(userName);
+            String line;
+            while ((line=in.readLine())!=null){
+                switch (line) {
+                    case "REJECT:NAME_CONFLICT":{
+                        System.err.println("Name used, disconnect from server.");
+                        System.exit(0);
+                    }
+                    case "NOTUSEYET":
+                        System.out.println("");
+                    default:
+                        System.out.println(line);
+                }
             }
         }catch (KeyStoreException e){
             e.printStackTrace();
-        }catch (IOException e){
+        } catch (SocketException e){
+            System.err.println("Disconnect form server!");
+            e.printStackTrace();
+            System.exit(0);
+        } catch (IOException e){
             e.printStackTrace();
         }catch (NoSuchAlgorithmException e){
             e.printStackTrace();
@@ -77,25 +89,12 @@ public class SocketClient extends Thread{
             e.printStackTrace();
         }catch (UnrecoverableKeyException e){
             e.printStackTrace();
-        } catch (InterruptedException e){
-            e.printStackTrace();
         }
-
     }
 
     public void SendMessage(String message){
         clientWriter.println(message);
-    }
-    class MessageHandler extends Thread {
-        BufferedReader in;
-        public MessageHandler(BufferedReader in){
-            this.in = in;
-        }
-        public void run(BufferedReader in) throws IOException {
-            while (true){
-                System.out.println(in.readLine());
-            }
-        }
+        clientWriter.flush();
     }
 }
 
