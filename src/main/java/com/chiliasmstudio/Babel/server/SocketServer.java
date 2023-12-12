@@ -22,7 +22,7 @@ public class SocketServer extends Thread{
 
         // 載入信任的憑證
         KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
-        trustKeyStore.load(new FileInputStream(".\\Xtemp\\Xtrust.pfx"), "".toCharArray());
+        trustKeyStore.load(new FileInputStream(".\\Config\\trust.pfx"), "".toCharArray());
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(trustKeyStore);
         TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
@@ -30,7 +30,7 @@ public class SocketServer extends Thread{
 
         // 載入伺服器憑證和私鑰
         KeyStore serverKeyStore = KeyStore.getInstance("PKCS12");
-        serverKeyStore.load(new FileInputStream(".\\Xtemp\\server.pfx"), "".toCharArray());
+        serverKeyStore.load(new FileInputStream(".\\Config\\server.pfx"), "".toCharArray());
 
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
         keyManagerFactory.init(serverKeyStore, "".toCharArray());
@@ -45,7 +45,7 @@ public class SocketServer extends Thread{
         SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
 
         // 建立 SSLServerSocket
-        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(81);
+        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(5124);
         serverSocket.setNeedClientAuth(true);
         serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
         System.out.println("Server start!");

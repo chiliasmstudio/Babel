@@ -11,9 +11,11 @@ import java.security.cert.CertificateException;
 public class SocketClient extends Thread{
     private PrintWriter clientWriter;
     public boolean isConnect = false;
-    public String userName = "anonymous";
-    public SocketClient(String userName) throws Exception{
+    public String userName = "";
+    public String ipAddress = "";
+    public SocketClient(String userName,String ipAddress) throws Exception{
         this.userName = userName;
+        this.ipAddress = ipAddress;
     }
 
     public void run(){
@@ -23,7 +25,7 @@ public class SocketClient extends Thread{
 
             // 載入信任的憑證
             KeyStore trustKeyStore = KeyStore.getInstance("PKCS12");
-            trustKeyStore.load(new FileInputStream(".\\Xtemp\\Xtrust.pfx"), "".toCharArray());
+            trustKeyStore.load(new FileInputStream(".\\Config\\trust.pfx"), "".toCharArray());
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(trustKeyStore);
             TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
@@ -31,7 +33,7 @@ public class SocketClient extends Thread{
 
             // 載入憑證和私鑰
             KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
-            clientKeyStore.load(new FileInputStream(".\\Xtemp\\client.pfx"), "".toCharArray());
+            clientKeyStore.load(new FileInputStream(".\\Config\\client.pfx"), "".toCharArray());
 
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
             keyManagerFactory.init(clientKeyStore, "".toCharArray());
@@ -46,7 +48,7 @@ public class SocketClient extends Thread{
             SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
             // 建立 SSLSocket
-            SSLSocket socket = (SSLSocket) socketFactory.createSocket("127.0.0.1", 81);
+            SSLSocket socket = (SSLSocket) socketFactory.createSocket(ipAddress, 5124);
 
             // Connected to server, notify the main class.
             System.out.println("Connect!");
